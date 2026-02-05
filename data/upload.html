@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Manager ESP32</title>
+    <link rel="stylesheet" href="mvp.css">
+    <style>
+        /* CSS Spesifik Halaman Ini */
+        table { width: 100%; border-collapse: collapse; }
+        td, th { text-align: left; padding: 10px; border-bottom: 1px solid #ddd; }
+        .btn-del { background-color: #ff4444; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 4px; }
+        .btn-del:hover { background-color: #cc0000; }
+        .upload-area { border: 2px dashed #ccc; padding: 20px; text-align: center; margin-bottom: 20px; background: #f9f9f9; border-radius: 8px; }
+    </style>
+</head>
+<body>
+
+    <main>
+        <header>
+            <h1>📂 Manajer File</h1>
+            <p><a href="/">← Kembali ke Beranda</a></p>
+        </header>
+
+        <section>
+            <h3>Upload File Baru</h3>
+            <div class="upload-area">
+                <form id="uploadForm">
+                    <input type="file" id="fileInput" name="data" required>
+                    <button type="submit" id="btnUpload">Unggah File</button>
+                </form>
+                <div id="uploadStatus" style="margin-top: 10px; font-weight: bold;"></div>
+            </div>
+        </section>
+
+        <section>
+            <h3>Daftar File (LittleFS)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nama File</th>
+                        <th>Ukuran</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="fileListBody">
+                    <tr><td colspan="3">Memuat data...</td></tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <script src="upload.js"></script>
+</body>
+</html>

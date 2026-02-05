@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Konfigurasi WiFi</title>
+    <link rel="stylesheet" href="mvp.css">
+    <link href="https://fonts.cdnfonts.com/css/digital-numbers" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/postcss.config.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/pico.min.css">
+</head>
+<style>
+@import url('https://fonts.cdnfonts.com/css/digital-numbers');
+.painter-box {
+    width: 100px;
+    height: 160px;
+    margin: 0 auto;
+    background:#ffffff;
+    padding: 15px;
+    border-radius: 10px;
+    position: relative;
+    user-select: none;
+}
+
+.seg {
+    position: absolute;
+    background: #515050;
+    border-radius: 5px;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+.main-center-container {
+    display: flex;
+    justify-content: center; /* Tengah Horizontal */
+    align-items: center;     /* Tengah Vertikal */
+    min-height: 80vh;        /* Ambil 80% tinggi layar */
+    padding: 20px;
+}
+
+/* Warna saat aktif/diklik */
+.seg.active {
+    background:#b80808 !important;
+    box-shadow: 0 0 12px #f00;
+}
+
+/* Posisi masing-masing segmen (Standard 7-Segment) */
+#seg-a { top: 10px; left: 20px; width: 50px; height: 10px; } /* Atas */
+#seg-f { top: 20px; left: 10px; width: 10px; height: 50px; } /* Kiri Atas */
+#seg-b { top: 20px; left: 70px; width: 10px; height: 50px; } /* Kanan Atas */
+#seg-g { top: 75px; left: 20px; width: 50px; height: 10px; } /* Tengah */
+#seg-e { top: 90px; left: 10px; width: 10px; height: 50px; } /* Kiri Bawah */
+#seg-c { top: 90px; left: 70px; width: 10px; height: 50px; } /* Kanan Bawah */
+#seg-d { top: 145px; left: 20px; width: 50px; height: 10px; } /* Bawah */
+
+@media (max-width: 576px) {
+  .hp-dua-kolom {
+    grid-template-columns: 1fr 1fr 1fr 1fr !important;
+  }
+}
+</style>
+<body>
+
+    <main class="container" id="konten-utama">
+	<div class="loading-screen">
+        <h2>Menghubungkan ke ESP32...</h2>
+        <p>Mohon tunggu sebentar, Bos.</p>
+    </div>
+        <div id="view-dashboard">
+            
+            <article >
+                
+                <header>
+                    <div class="grid" style="text-align: center;">
+                        <div><small>Imsak</small><br><strong id="disp-0">--:--</strong></div>
+                        <div><small>Subuh</small><br><strong id="disp-1">--:--</strong></div>
+                        <div><small>Dzuhur</small><br><strong id="disp-2">--:--</strong></div>
+                        <div><small>Ashar</small><br><strong id="disp-3">--:--</strong></div>
+                        <div><small>Maghrib</small><br><strong id="disp-4">--:--</strong></div>
+                        <div><small>Isya</small><br><strong id="disp-5">--:--</strong></div>
+                    </div>
+                </header>
+
+                <div style="text-align: center; padding: 20px 0;">
+                    <h1 id="jamDigital" style="font-size: 3.5rem; margin-bottom: 20px;">00:00:00</h1>
+                    <small>Waktu Lokal Sistem</small>
+                </div>
+
+                <footer>
+                    <div class="grid" style="text-align: center; font-size: 0.8rem;">
+                        <div>🚀 RAM <br> <span id="valRAM">0%</span></div>
+                        <div>📶 RSSI <br> <span id="valRssi">0 dB</span></div>
+                        <div>🌡️ Suhu <br> <span id="valTemp">0 °C</span></div>
+                        <div>🕒 Uptime <br> <span id="valUptime">0</span></div>
+                        <div>📂 Storage <br> <span id="valFSTotal">0 KB</span></div>
+                        <div>📂 Storage <br> <span id="valFSUsed">0 KB</span></div>
+                        <div>💾 Flash <br> <span id="valFlash">0 KB</span></div>
+						<div>🔄 Jadwal <br> <span id="lastUpdate">hh:mm</span></div>
+                    </div>
+                </footer>
+
+            </article>
+            <article>
+            
+            <details open>
+			<summary>💡 Live Kecerahan & Warna</summary>
+				<div style="padding-top: 10px;">
+					<p><small>Silakan klik tombol untuk mengaktifkan Jam:</small></p>
+
+					<div class="grid">
+						<button class="outline" onclick="showJam()">
+							Tampilkan Jam
+						</button>
+					</div>
+
+				
+			
+				<div class="grid" style="padding: 10px 0;"> 
+
+					<label>Warna Jam: <br>
+					<div>
+						<input type="color" id="w0"  title="Warna Digit">
+					</div>
+					</label>
+
+					<label for="on_t">
+						<input type="checkbox" id="on_a" role="switch" onchange="setEfekJam(this.checked)">
+						Gunakan Animasi Jam
+					</label>
+					<label >
+						<input type="checkbox" id="on_cuaca" role="switch" onchange="statuscuaca(this.checked)">
+						Gunakan Cuaca
+					</label>
+
+					<label id="pilihanimasi" for="id_a">Pilih Efek:
+						<select data-slot = "15" id="id_a" onchange="pilihanimasi()"></select>
+					</label>
+
+					<label for="t2k">
+						<input type="checkbox" id="t2k" role="switch" onchange="titik2kedip(this.checked)">
+						Titik Dua Berkedip
+					</label>
+
+					<label for="br">
+						Kecerahan: <span id="val_br">100</span>%
+						<input type="range" id="br" min="0" max="100" value="100" oninput="liveBr(this.value)">
+					</label>
+					
+				</div>
+				<br>
+					<button onclick="simpanKonfigJam()" style="width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+						💾 SIMPAN
+					</button>
+				</div>
+			</details>
+            
+			<details>
+				<summary>🦇 Pengusir Hama</summary>
+				
+				<div style="padding-top: 10px;">
+					<div class="grid" style="margin-top: 20px; margin-bottom: 20px;">
+						<label>
+							<input type="checkbox" role="switch" id="malam" onclick="simpanHama()">
+							Mode Malam
+						</label>
+						<label>
+							<input type="checkbox" role="switch" id="on" onchange="liveUpdateHama()">
+							Aktifkan Alat
+						</label>
+					</div>
+					
+					<div class="grid">
+						<label>
+							Freq Min (Hz)
+							<select id="fMin">
+								<option value="15000">15 Khz</option>
+								<option value="20000">20 Khz</option>
+								<option value="25000">25 Khz</option>
+							</select>
+						</label>
+						<label>
+							Freq Max (Hz)
+							<select id="fMax">
+								<option value="40000">40 Khz</option>
+								<option value="50000">50 Khz</option>
+								<option value="60000">60 Khz</option>
+							</select>
+						</label>
+					</div>
+
+					<label style="margin-top: 10px;">
+						Interval Sapuan
+						<select id="int">
+							<option value="5000">5 Detik</option>
+							<option value="30000">30 Detik</option>
+							<option value="60000">1 Menit</option>
+							<option value="180000">3 Menit</option>
+							<option value="300000">5 Menit</option>
+							<option value="600000">10 Menit</option>
+							<option value="900000">15 Menit</option>
+						</select>
+					</label>
+
+					
+
+					<button onclick="simpanHama()">Simpan Pengaturan</button>
+
+				</div>
+			</details>
+            
+            <details>
+				<summary>📅 Pengaturan Jadwal</summary>
+				
+				<div style="padding-top: 10px;">
+					<p><small>Silakan klik tombol jadwal untuk diaktifkan:</small></p>
+
+					<div class="grid">
+						<button class="outline" onclick="showJadwal()">
+							Jadwal Sholat
+						</button>
+					</div>
+
+				</div>
+			</details>
+            
+            <details>
+				<summary>🕌 Notifikasi Sholat</summary>
+				
+				<div style="padding-top: 10px;">
+					
+					<label><strong>Pilih Waktu Sholat:</strong></label>
+					<select id="pilih-sholat" onchange="gantiDataSholat(this.value)">
+						<option value="0">Imsak</option>
+						<option value="1">Subuh</option>
+						<option value="2">Dzuhur</option>
+						<option value="3">Ashar</option>
+						<option value="4">Maghrib</option>
+						<option value="5">Isya</option>
+					</select>
+					
+					<hr>
+
+					<div class="grid">
+						<label>
+							Jeda Peringatan (Menit)
+							<input type="number" id="mP" min="1" max="7" placeholder="5">
+						</label>
+                        <label>
+							Warna
+							<input type="color" id="clP">
+						</label>
+						<label id="pilihanimasi" for="iEP">Pilih Efek:
+							<select data-slot = "15" id="iEP" onchange="pilihanimasi()"></select>
+						</label>
+						<label>
+							Hitung Mundur Adzan
+							<input type="number" id="cDown" min="1" max="120" placeholder="10">
+						</label>
+						<label>
+							Warna
+							<input type="color" id="clC">
+						</label>
+
+					</div>
+
+					<div class="grid">
+						<label id="pilihanimasi">
+							Efek Adzan
+							<select data-slot = "15" id="iEA" min="1" max="7" placeholder="1"></select>
+						</label>
+						<label>
+							Durasi Adzan (Menit)
+							<input type="number" id="durA" min="1" max="10" placeholder="120">
+						</label>
+						<label>
+							Warna
+							<input type="color" id="clA">
+						</label>
+					</div>
+
+					<div class="grid">
+						
+						<label>
+							Menit Hemat (Standby)
+							<input type="number" id="mH" min="1" max="20" placeholder="10">
+						</label>
+						<label>
+							Warna
+							<input type="color" id="clH">
+						</label>
+						<label>
+						Kecerahan Saat Hemat/Standby
+						<span id="valHemat" style="float: right; font-weight: bold;">40</span>
+						<input type="range" id="brH" min="0" max="100" 
+						   oninput="document.getElementById('valHemat').innerText = this.value">
+					</label>
+					
+					</div>
+
+					
+
+					<button onclick="simpanNotifSholat()" style="margin-top: 15px;">
+						Simpan Data Terpilih
+					</button>
+
+				</div>
+			</details>
+			<details>
+			<summary>📅 Pengaturan Tanggal</summary>
+			
+			<div style="padding-top: 10px;">
+				
+				<div style="margin-bottom: 15px;">
+					<label>
+						<input type="checkbox" role="switch" id="a">
+						<strong>Aktifkan Fitur Tanggal</strong>
+					</label>
+				</div>
+
+				<hr>
+
+				<p><strong>Pengaturan Waktu</strong></p>
+				<div class="grid">
+					<label>
+						Mulai (Detik ke-)
+						<input type="number" id="dtke" placeholder="Contoh: 0">
+					</label>
+					
+					<label>
+						Durasi (Detik)
+						<input type="number" id="lma" placeholder="Contoh: 5">
+					</label>
+
+					<label>
+						Format Tanggal
+						<select id="ft">
+							<option value="0">DD-MM</option>
+							<option value="1">MM-YY</option>
+							<option value="2">YYYY</option>
+						</select>
+					</label>
+					<label>
+						Warna
+						<input type="color" id="clNr">
+					</label>
+
+				</div>
+
+				<hr>
+
+				<p><strong>Efek Visual</strong></p>
+				<div class="grid">
+					<label style="display: flex; align-items: center;">
+						<input type="checkbox" role="switch" id="ev">
+						Aktifkan Efek
+					</label>
+
+					<label id="pilihanimasi"> 
+						ID Efek
+						<select data-slot="15" id="id" placeholder="Pilih Animasi"></select>
+					</label>
+					<label>
+						Warna Tanggal Agenda
+						<input type="color" id="clAg">
+					</label>
+				</div>
+
+				<div class="grid" style="margin-top: 10px;">
+					<label>
+						Mode Titik Dua (DP)
+						<select id="dp">
+							<option value="0">Mati (Diam)</option>
+							<option value="1">Kedip Satu</option>
+							<option value="2">Kedip Dua (Heartbeat)</option>
+							<option value="3">Kedip Keduanya</option>
+						</select>
+					</label>
+
+					<label>
+						Kecepatan Kedip
+						<select id="md">
+							<option value="2">Lambat</option>
+							<option value="1" selected>Sedang</option>
+							<option value="0">Cepat</option>
+						</select>
+					</label>
+					<label>
+						Warna Tanggal Libur
+						<input type="color" id="clLb">
+					</label>
+				</div>
+
+				<button onclick="simpanTanggal()" style="margin-top: 20px;">
+					Simpan Tanggal
+				</button>
+
+			</div>
+		</details>
+        
+
+		<details>
+			<summary>🎨 Buat Animasi (Custom Frames)</summary>
+			<div style="padding-top: 10px;">
+				
+				<div class="grid">
+					<label>Pilih Slot Editor
+						<select id="slot" onchange="loadSlot(this.value)"></select>
+					</label>
+					<label>Mode Animasi
+						<select id="m">
+							<option value="1">PELANGI</option>
+							<option value="2">ULAR</option>
+							<option value="3">HUJAN</option>
+							<option value="4">BREATHING</option>
+							<option value="5">FIRE</option>
+							<option value="6">FIREFILES</option>
+							<option value="7">SILK</option>
+							<option value="8">SOLAR</option>
+							<option value="9">BLINK</option>
+							<option value="10">Time Warp</option>
+							<option value="11">Bounce</option>
+						</select>
+					</label>
+					<label>
+						Warna 
+						<input type="color" id="c">
+					</label>
+				</div>
+				<div class="grid">
+					<label>Speed (ms)
+					<input type="number" id="s" value="150">
+					</label>
+					<label>Bright
+					<input type="number" id="b" value="200">
+					</label>
+					<div style="display: flex; align-items: center; justify-content: center; height: 100%;">
+						<label style="margin-bottom: 0;">
+							<input type="checkbox" id="dp" role="switch"> 
+							Pakai Titik (DP)
+						</label>
+					</div>
+				</div>
+						
+						
+				<div class="grid">
+					<article style="padding: 1rem; text-align: center;">
+						<header><strong>Segmen Painter</strong></header>
+						<div class="painter-box">
+							<div class="painter-box">
+								<div class="seg" id="seg-a" data-bit="1"></div>
+								<div class="seg" id="seg-b" data-bit="2"></div>
+								<div class="seg" id="seg-c" data-bit="4"></div>
+								<div class="seg" id="seg-d" data-bit="8"></div>
+								<div class="seg" id="seg-e" data-bit="16"></div>
+								<div class="seg" id="seg-f" data-bit="32"></div>
+								<div class="seg" id="seg-g" data-bit="64"></div>
+							</div>
+						</div>
+						<footer>
+							<button class="outline" onclick="tambahFrame()">➕ Tambah Frame</button>
+						</footer>
+					</article>
+					<article>
+						<header><small> Frames (Klik untuk hapus):</small></header>
+						<div id="previewContainer" class="grid"></div>
+					</article>
+				</div>
+
+				
+			<footer>
+			<div class="grid">									
+			    <button onclick="simpanKeObjekLokal()" class="contrast">💾 Simpan</button>
+				<button  class="contrast" id="btnTes" onclick="testEfekKeAlat()">🟢 Lihat</button>
+			</div>
+			</footer>
+
+			</div>
+		</details>
+
+
+		<details>
+				<summary>⚙️ Pengaturan System</summary>
+				
+				<div style="padding-top: 10px;">
+					
+					<form id="formSystem">
+					<div class="grid">
+						<label>Nama Alat (Host)
+						<input type="text" name="dev" id="dev">
+						</label>
+						<label>Jumlah Digit
+						<select name="dg">
+							<option value="4">4 Digit</option>
+							<option value="6">6 Digit</option>
+						</select>
+						</label>
+					</div>
+
+					<div class="grid">
+						<label for="gas"><small>🕒 Google Apps Script (GAS)</small>
+							<div role="group">
+								<input type="text" id="gas" name="gas" placeholder="https://script.google.com/..."required>
+								<button type="submit" id="btnGas" onclick="sinkronGas()" >🔄Sync </button>
+							</div>
+						</label>
+					</div>
+
+					<div class="grid">
+						<label>Admin User <input type="text" name="user" id="user"></label>
+						<label>Admin Pass <input type="password" name="pass" id="pass"></label>
+						<label>Timezone <input type="number" name="tz" value="7"></label>
+					</div>
+
+					<button type="submit" onclick="simpanSystem(event)">Simpan Konfigurasi</button>
+					</form>
+
+				</div>
+			</details>
+
+
+            </article>
+        </div>
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        <main id ="skor_s"></main>
+        <div id="view-wifi">
+            <article>
+                <header>
+                    <h3>Konfigurasi WiFi</h3>
+                </header>
+                <form id="formWifi">
+					<label>Daftar Jaringan</label>
+					<select id="pilih-wifi">
+						<option value="">Scanning...</option>
+					</select>
+
+					<label>Nama WiFi (SSID)</label>
+					<input type="text" id="ssid" name="ssid" placeholder="Pilih atau ketik...">
+
+					<label>Password</label>
+					<input type="password" id="pass" name="pass" placeholder="Password">
+					
+					<button type="submit">Sambungkan</button>
+				</form>
+                </form>
+            </article>
+        </div>
+    
+    </main>
+    <script src="main.js"></script>
+    <script src="systemmonitor.js"></script>
+	
+    <script src="config.js"></script>
+    
+    
+    
+</body>
+</html>
