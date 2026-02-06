@@ -145,11 +145,11 @@ bool saveSystemConfig() {
   auto g = doc.createNestedObject("global");
   g["dg"] = konfig.jumlahDigit;
   g["br"] = konfig.kecerahanGlobal;
-  g["dev"] = konfig.namaPerangkat;
-  g["gas"] = konfig.urlGAS;
+  g["dev"] = String (konfig.namaPerangkat);
+  g["gas"] = String (konfig.urlGAS);
   g["sncy"] = konfig.terakhirSync;
-  g["user"] = konfig.authUser;
-  g["pass"] = konfig.authPass;
+  g["user"] = String (konfig.authUser);
+  g["pass"] = String (konfig.authPass);
   g["mk"] = konfig.modeKedip;
   g["sk"] = konfig.speedKedip;
   g["dk"] = konfig.durasiKedip;
