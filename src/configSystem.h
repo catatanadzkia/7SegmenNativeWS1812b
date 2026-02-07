@@ -109,11 +109,11 @@ struct SistemConfig {
 
   int jumlahDigit;
   int kecerahanGlobal;  // Kecerahan jam saat kondisi normal
-  char namaPerangkat[32];
-  char urlGAS[150];  // Nama yang muncul di WiFi/mDNS
-  char terakhirSync[20];
-  char authUser[16];
-  char authPass[16];
+  char namaPerangkat[64];
+  char urlGAS[512];  // Nama yang muncul di WiFi/mDNS
+  char terakhirSync[32];
+  char authUser[32];
+  char authPass[32];
 
   //Hanya Lewat
   bool modeEfekAktif = false;

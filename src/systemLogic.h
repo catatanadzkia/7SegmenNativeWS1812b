@@ -26,22 +26,47 @@ extern void buatBufferWaktu(int jam, int menit, int detik, uint8_t* buf, bool do
 extern void clearDisplay();
 extern void padDing(int d);
 
+CRGB warnaW;
 
 void eksekusiLogikaDP(int mode, bool state) {
+  // 1. Reset dulu biar gak ada sisa warna (Goblok-proof)
+   
+  targetPixel[1][42] = CRGB::Black;
+  targetPixel[1][43] = CRGB::Black;
+
+  // 3. Mainkan Mode DP
   switch (mode) {
-    case 1: mainBuffer[1] &= 0x7F; mainBuffer[2] &= 0x7F; break; // Mati
-    case 2: if (state) mainBuffer[1] |= 0x80; else mainBuffer[1] &= 0x7F; break; // Satu
-    case 3: // Bergantian
-      if (state) { mainBuffer[1] |= 0x80; mainBuffer[2] &= 0x7F; }
-      else       { mainBuffer[1] &= 0x7F; mainBuffer[2] |= 0x80; }
+    case 1: // MODE GANTIAN (Kedip Atas-Bawah)
+      if (state) {
+        targetPixel[1][42] = warnaW; 
+      } else {
+        targetPixel[1][43] = warnaW;
+      }
       break;
-    case 4: // Keduanya
-      if (state) { mainBuffer[1] |= 0x80; mainBuffer[2] |= 0x80; }
-      else       { mainBuffer[1] &= 0x7F; mainBuffer[2] &= 0x7F; }
+
+    case 2: // MODE KEDIP BARENG
+      if (state) {
+        targetPixel[1][42] = warnaW;
+        targetPixel[1][43] = warnaW;
+      }
+      break;
+
+    case 3: // MODE HEARTBEAT (Detak)
+      if ((millis() % 1000) < 150 || ((millis() % 1000) > 300 && (millis() % 1000) < 450)) {
+        targetPixel[1][42] = warnaW;
+        targetPixel[1][43] = warnaW;
+      }
+      break;
+
+    case 4: // MODE NYALA TERUS (Standby)
+      targetPixel[1][42] = warnaW;
+      targetPixel[1][43] = warnaW;
+      break;
+
+    default: // Jika mode tidak dikenal, biarkan mati
       break;
   }
 }
-
 void prosesAnimasiEfek(int idEfek) {
   int slot = idEfek - 1;
   if (slot < 0 || slot >= 15) return;
@@ -88,7 +113,7 @@ void prosesAnimasiEfek(int idEfek) {
       bitmask = konfig.daftarEfek[slot].polaSegmen[frameAktif];
       
       // Tambahkan DP jika diatur di web
-      if (konfig.daftarEfek[slot].pakaiDP) bitmask |= 0x80;
+     if (!konfig.daftarEfek[slot].pakaiDP) bitmask &= 0x7F;
     }
 
     // --- EKSEKUSI MODE ---
@@ -126,7 +151,7 @@ void prosesAnimasiEfek(int idEfek) {
 
 void notifTanggal(int setiap, int durasi, bool adaAgenda, int modeDP, int speedDP) {
   if (setiap <= 0) return;
-
+  
   // --- JALUR 1: KASTA TERTINGGI (AGENDA) ---
   if (adaAgenda) {
     konfig.modeEfekAktif = true;
@@ -135,8 +160,12 @@ void notifTanggal(int setiap, int durasi, bool adaAgenda, int modeDP, int speedD
     if (timeinfo.tm_wday == 5) tipeNotif = 3; // Tetap Hijau kalau Jumat
     else                       tipeNotif = 6; // Warna Agenda dari Konfig
 
+    int modeFinal = 3;
+    int speedFinal =speedDP; // Standar 500ms kalau rutin
+    bool stateKedip = (millis() / speedFinal) % 2 == 0;
+
     buatBufferTanggal(timeinfo, mainBuffer, konfig.tanggal.format);
-    eksekusiLogikaDP(modeDP, (millis() / speedDP) % 2 == 0); 
+    eksekusiLogikaDP(modeDP, stateKedip); 
     prosesAnimasiEfek(konfig.tanggal.idEfek); 
     return; // Langsung pulang, jangan lirik jalur rutin
   }
@@ -150,8 +179,11 @@ void notifTanggal(int setiap, int durasi, bool adaAgenda, int modeDP, int speedD
     else if (timeinfo.tm_wday == 0) tipeNotif = 4; // Minggu/Libur
     else                            tipeNotif = 5; // Normal
 
+    bool stateKedip = (millis() / 500) % 2 == 0;
+
+    // 3. Eksekusi suntik titik
     buatBufferTanggal(timeinfo, mainBuffer, konfig.tanggal.format);
-    eksekusiLogikaDP(modeDP, (millis() / 500) % 2 == 0); 
+    eksekusiLogikaDP(modeDP, stateKedip);
     prosesAnimasiEfek(konfig.tanggal.idEfek); 
     return;
   }
@@ -265,8 +297,8 @@ void terapkanVisualJam() {
     prosesAnimasiEfek(konfig.visjam.idAnimasi); 
     return;
   } 
-  if (statusCuaca.aktif){
-    uint32_t warnaCuaca = tentukanWarnaCuaca(statusCuaca.kodeCuaca);
+  if (cuaca.status.aktif){
+    uint32_t warnaCuaca = tentukanWarnaCuaca(cuaca.status.kodeCuaca);
 
     for ( int d = 0 ; d < konfig.jumlahDigit; d++){
       warna[d] = CRGB(warnaCuaca);

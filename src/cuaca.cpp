@@ -93,7 +93,7 @@ bool saveCuaca(){
   JsonObject s = saveDoc["status"];
   s["aktif"] = cuaca.status.aktif; 
   s["kode"]  = cuaca.status.kodeCuaca;
-  s["ket"]   = cuaca.status.kondisi.c_str(); // Konsisten menggunakan "ket"
+  s["desc"]   = cuaca.status.kondisi.c_str(); // Konsisten menggunakan "desc"
   s["jam"]   = cuaca.status.jam.c_str();
 
   //siimpanstructwarna
@@ -128,8 +128,8 @@ bool muatCuaca() {
   File file = LittleFS.open("/cuaca.json", "r");
   if (!file) return false;
 
-  // Di ArduinoJson 7, cukup JsonDocument tanpa angka ukuran
-  JsonDocument loadDoc; 
+  // ArduinoJson v6 requires a sized JsonDocument. Use a DynamicJsonDocument with safe size.
+  DynamicJsonDocument loadDoc(512);
 
   // Deserialize data dari file
   DeserializationError error = deserializeJson(loadDoc, file);

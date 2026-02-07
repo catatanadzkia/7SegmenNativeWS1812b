@@ -517,14 +517,15 @@ void cekDanTampilkan() {
 
   // 4. PRIORITAS KEEMPAT: TAMPIL TANGGAL
   if (konfig.tanggal.aktif) {
-  bool modeSpesialAktif = (konfig.tanggal.adaEvent && nmAgnd.length() > 0);
+
+    bool isAdaEvent = (konfig.tanggal.adaEvent && nmAgnd.length() > 0);
 
   notifTanggal(
     konfig.tanggal.setiap,
     konfig.tanggal.lama,
-    modeSpesialAktif, // Parameter penentu perilaku
-    modeSpesialAktif ? konfig.tanggal.modeDP : 0,    // Mode Heboh vs Mode Normal
-    modeSpesialAktif ? konfig.tanggal.alertDP : 15   // Speed Heboh vs Speed Normal
+    isAdaEvent, // Parameter penentu perilaku
+    konfig.tanggal.modeDP,    // Mode Heboh vs Mode Normal
+    konfig.tanggal.alertDP   // Speed Heboh vs Speed Normal
   );
 
   if (konfig.modeEfekAktif) return; 

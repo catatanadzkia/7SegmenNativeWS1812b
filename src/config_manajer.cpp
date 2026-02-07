@@ -57,7 +57,12 @@ static bool writeJson(const char* path, DynamicJsonDocument& doc) {
 }
 
 bool reloadConfigByTarget(const String& target) {
-  if (target == "system") return loadSystemConfig();
+  if (target == "system") {
+    DynamicJsonDocument docTemp(2048);
+    if (openJson("/system.json", docTemp)) {
+      return saveSystemConfig(docTemp.as<JsonVariant>());
+    }
+  }
   if (target == "sholat") {
     DynamicJsonDocument docTemp(2048);
     if (openJson("/sholat.json", docTemp)) {
@@ -105,7 +110,7 @@ bool loadSystemConfig() {
     saveSystemConfig(); // Tulis ke LittleFS
   }
 
-  DynamicJsonDocument doc(1024);
+  DynamicJsonDocument doc(4096);
   if (!openJson("/system.json", doc)) {
     // Kalau gagal baca (corrupt), reset ke standar
     Serial.println("⚠️ System Config Corrupt -> Resetting");
@@ -115,7 +120,7 @@ bool loadSystemConfig() {
   }
 
   auto g = doc["global"];
-  konfig.jumlahDigit = g["dg"].as<int>() | konfig.jumlahDigit;
+  konfig.jumlahDigit = g["dg"] | konfig.jumlahDigit;
   konfig.kecerahanGlobal = g["br"] | konfig.kecerahanGlobal;
   strlcpy(konfig.namaPerangkat, g["dev"] | konfig.namaPerangkat, sizeof(konfig.namaPerangkat));
   strlcpy(konfig.urlGAS, g["gas"] | konfig.urlGAS, sizeof(konfig.urlGAS));
@@ -140,31 +145,70 @@ bool loadSystemConfig() {
   return true;
 }
 
-bool saveSystemConfig() {
-  DynamicJsonDocument doc(1024);
-  auto g = doc.createNestedObject("global");
-  g["dg"] = konfig.jumlahDigit;
-  g["br"] = konfig.kecerahanGlobal;
-  g["dev"] = String (konfig.namaPerangkat);
-  g["gas"] = String (konfig.urlGAS);
-  g["sncy"] = konfig.terakhirSync;
-  g["user"] = String (konfig.authUser);
-  g["pass"] = String (konfig.authPass);
-  g["mk"] = konfig.modeKedip;
-  g["sk"] = konfig.speedKedip;
-  g["dk"] = konfig.durasiKedip;
-  g["t2k"] = konfig.titikDuaKedip;
-  g["ls"] = konfig.loopSetiap;
-  g["ll"] = konfig.loopLama;
-  g["ft"] = konfig.fmtTgl;
-  g["tz"] = konfig.timezone;
-  g["wj"] = konfig.warnajam;
+// Fungsi simpan yang tidak destruktif (Smart Merge)
+bool saveSystemConfig(JsonVariant dataWeb) {
 
-  auto w = doc.createNestedObject("wifi");
-  w["idwifi"] = konfig.wikon.ssid;
-  w["pas"] = konfig.wikon.pass;
+  if (!dataWeb.isNull()) {
+    // --- MODE WEB: Patching ---
+    JsonObject incoming = dataWeb["global"];
+    if (!incoming.isNull()) {
+        // Update RAM
+        konfig.jumlahDigit = incoming["dg"] | konfig.jumlahDigit;
+        konfig.kecerahanGlobal = incoming["br"] | konfig.kecerahanGlobal;
+        konfig.timezone = incoming["tz"] | konfig.timezone;
+        konfig.modeKedip = incoming["mk"] | konfig.modeKedip;
+        konfig.speedKedip = incoming["sk"] | konfig.speedKedip;
+        konfig.durasiKedip = incoming["dk"] | konfig.durasiKedip;
+        konfig.titikDuaKedip = incoming["t2k"] | konfig.titikDuaKedip;
+        konfig.loopSetiap = incoming["ls"] | konfig.loopSetiap;
+        konfig.loopLama = incoming["ll"] | konfig.loopLama;
+        konfig.fmtTgl = incoming["ft"] | konfig.fmtTgl;
+        
 
-  return writeJson("/system.json", doc);
+        // --- Update RAM untuk String (Harus cek ada kuncinya gak) ---
+      if (incoming.containsKey("dev"))  strlcpy(konfig.namaPerangkat, incoming["dev"], sizeof(konfig.namaPerangkat));
+      if (incoming.containsKey("user")) strlcpy(konfig.authUser, incoming["user"], sizeof(konfig.authUser));
+      if (incoming.containsKey("pass")) strlcpy(konfig.authPass, incoming["pass"], sizeof(konfig.authPass));
+      if (incoming.containsKey("gas"))  strlcpy(konfig.urlGAS, incoming["gas"], sizeof(konfig.urlGAS));
+
+      if (incoming.containsKey("wj")) {
+        konfig.warnajam = (uint32_t)strtoul(incoming["wj"].as<const char*>(), NULL, 0);
+      }
+     
+    }
+  }
+  DynamicJsonDocument doc(4096);
+  JsonObject g = doc.createNestedObject("global"); 
+  // Paksa semua data RAM masuk ke JSON dengan format String yang aman
+    g["dg"]   = konfig.jumlahDigit;
+    g["br"]   = konfig.kecerahanGlobal;
+    g["dev"]  = String(konfig.namaPerangkat);
+    g["user"] = String(konfig.authUser);
+    g["pass"] = String(konfig.authPass);
+    g["gas"]  = String(konfig.urlGAS);
+    g["mk"]   = konfig.modeKedip;
+    g["sk"]   = konfig.speedKedip;
+    g["dk"]   = konfig.durasiKedip;
+    g["t2k"]  = konfig.titikDuaKedip;
+    g["ls"]   = konfig.loopSetiap;
+    g["ll"]   = konfig.loopLama;
+    g["ft"]   = konfig.fmtTgl;
+    g["tz"]   = konfig.timezone;
+
+    char hexW[12];
+    sprintf(hexW, "0x%06X", konfig.warnajam);
+    g["wj"] = String(hexW);
+    
+    JsonObject w = doc.createNestedObject("wifi");
+    w["idwifi"] = String(konfig.wikon.ssid);
+    w["pas"]    = String(konfig.wikon.pass);
+
+  // 4. PROSES TULIS LANGSUNG KE LITTLEFS (JANGAN PAKAI FUNGSI LUAR DULU)
+  File f = LittleFS.open("/system.json", "w");
+  if (!f) return false;
+  serializeJson(doc, f); 
+  f.close();
+  return true;
 }
 
 // ---------- HAMA / ULTRA ----------
@@ -347,7 +391,8 @@ bool saveWifi() {
 // ---------- SHOLAT ----------
 bool loadSholatConfig() {
   if (!LittleFS.exists("/sholat.json")) {
-    saveSholatConfig(); 
+    DynamicJsonDocument __tmpSh(1);
+    saveSholatConfig(__tmpSh.as<JsonVariant>());
   }
 
   DynamicJsonDocument doc(3072);
@@ -379,6 +424,18 @@ bool loadSholatConfig() {
 }
 
 bool saveSholatConfig(JsonVariant dataWeb) {
+  // Jika dipanggil tanpa payload (hanya untuk membuat file default),
+  // tulis array kosong dan keluar.
+  if (dataWeb.isNull()) {
+    File f = LittleFS.open("/sholat.json", "w");
+    if (!f) return false;
+    DynamicJsonDocument tmp(16);
+    JsonArray root = tmp.to<JsonArray>();
+    serializeJson(root, f);
+    f.close();
+    Serial.println("DEBUG: Created empty /sholat.json");
+    return true;
+  }
   // --- LANGKAH 1: SUNTIK RAM (konfig.sholat) ---
   // Kita cek apakah data yang masuk itu Objek Tunggal (punya "id") atau Array
   if (dataWeb.is<JsonObject>() && dataWeb.containsKey("id")) {
@@ -458,7 +515,7 @@ bool loadTanggalConfig() {
   konfig.tanggal.format   = tgl["ft"] | 0;
   konfig.tanggal.adaEvent = tgl["ev"] | false;
   konfig.tanggal.idEfek   = tgl["id"] | 0;
-  konfig.tanggal.modeDP   = tgl["dp"] | 0;
+  konfig.tanggal.modeDP   = tgl["dpt"] | 0;
 
   // 3. Ambil Warna (clAg, clNr, clLb)
   const char* clAg = tgl["clAg"] | "0x00FFFF";
@@ -482,7 +539,7 @@ bool saveTanggalConfig() {
   tgl["ft"]  = konfig.tanggal.format;
   tgl["id"]  = konfig.tanggal.idEfek;
   tgl["ev"]  = konfig.tanggal.adaEvent;
-  tgl["dp"]  = konfig.tanggal.modeDP;
+  tgl["dpt"]  = konfig.tanggal.modeDP;
 
   // Konvertli warna ke Hex 0x untuk JS Bos
   char hexAg[11], hexNr[11], hexLb[11];
@@ -501,8 +558,8 @@ bool saveTanggalConfig() {
 bool loadEfekConfig() {
   if (!LittleFS.exists("/efek.json")) {
      Serial.println("⚙️ Membuat Default /efek.json...");
-     
-      saveEfekConfig();
+      DynamicJsonDocument __tmpEf(1);
+      saveEfekConfig(__tmpEf.as<JsonVariant>());
   }
 
   DynamicJsonDocument doc(4096); // Saya naikkan sedikit kapasitasnya karena ada data warna tambahan
@@ -518,7 +575,7 @@ bool loadEfekConfig() {
     konfig.daftarEfek[i].mode = e["m"] | 0;
     konfig.daftarEfek[i].kecepatan = e["s"] | 0;
     konfig.daftarEfek[i].kecerahan = e["b"] | 0;
-    konfig.daftarEfek[i].pakaiDP = e["dp"] | false;
+    konfig.daftarEfek[i].pakaiDP = e["dp"].as<bool>();
     
     const char* warnaHex = e["c"] | "0xFFFFFF"; 
     konfig.daftarEfek[i].warnaAni = strtoul(warnaHex, NULL, 16); 
@@ -538,6 +595,18 @@ bool loadEfekConfig() {
 // Tambahkan parameter JsonObject untuk menangkap data dari Web
 bool saveEfekConfig(JsonVariant dataWeb) {
   // --- LANGKAH 1: UPDATE DATA DI RAM (Suntik Data) ---
+  // Jika dipanggil tanpa payload (hanya untuk membuat file default),
+  // tulis array kosong dan keluar.
+  if (dataWeb.isNull()) {
+    File f = LittleFS.open("/efek.json", "w");
+    if (!f) return false;
+    DynamicJsonDocument tmp(16);
+    JsonArray root = tmp.to<JsonArray>();
+    serializeJson(root, f);
+    f.close();
+    Serial.println("DEBUG: Created empty /efek.json");
+    return true;
+  }
   // Kita cek apakah data dari web punya "id"
   if (!dataWeb.isNull() && dataWeb.containsKey("id")) {
     int idEfek = dataWeb["id"]; 
@@ -549,7 +618,7 @@ bool saveEfekConfig(JsonVariant dataWeb) {
       konfig.daftarEfek[idx].mode = dataWeb["m"] | 1;
       konfig.daftarEfek[idx].kecepatan = dataWeb["s"] | 150;
       konfig.daftarEfek[idx].kecerahan = dataWeb["b"] | 200;
-      konfig.daftarEfek[idx].pakaiDP = dataWeb["dp"] | 0;
+      konfig.daftarEfek[idx].pakaiDP = dataWeb["dp"].as<bool>();
       
       const char* hexWarna = dataWeb["c"] | "0xFFFFFF";
       konfig.daftarEfek[idx].warnaAni = strtoul(hexWarna, NULL, 0);

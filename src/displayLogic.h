@@ -116,9 +116,7 @@ void buatBufferTanggal(struct tm info, uint8_t* buf, int format) {
   int bln = info.tm_mon + 1;
   int thn = info.tm_year + 1900;
 
-  // Bersihkan buffer
-  for(int i=0; i<konfig.jumlahDigit; i++) buf[i] = segmenKosong;
-
+ 
   switch (format) {
     case 0: // Format DD.MM (Contoh: 09.01)
       buf[0] = dapatkanByte(tgl / 10, false); 
@@ -143,7 +141,7 @@ void buatBufferTanggal(struct tm info, uint8_t* buf, int format) {
       
     default: // Backup jika format salah
       buf[0] = dapatkanByte(tgl / 10, false);
-      buf[1] = dapatkanByte(tgl % 10, true);
+      buf[1] = dapatkanByte(tgl % 10, false);
       buf[2] = dapatkanByte(bln / 10, false);
       buf[3] = dapatkanByte(bln % 10, false);
       break;

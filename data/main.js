@@ -166,7 +166,7 @@ function simpanTanggal() {
             
             ev:   document.getElementById('ev').checked,     // bool
             id:   parseInt(document.getElementById('id').value) || 0,
-            dp:   parseInt(document.getElementById('dp').value) || 0,
+            dpt:   parseInt(document.getElementById('dpt').value) || 0,
 
             // --- TAMBAHAN WARNA (Sesuai ID di Struct & Save C++) ---
             clAg: document.getElementById('clAg').value.replace("#", "0x"),
@@ -200,13 +200,9 @@ async function simpanSystem(e) {
         let value = input.value;
         
         // Konversi otomatis jika tipe inputnya number/range agar jadi Integer di JSON
-        if (input.type === 'number' || input.type === 'range') {
+        if (input.type === 'number' || input.type === 'range' || input.tagName.toLowerCase() === 'select') {
             value = parseInt(value);
         }
-         if (input.type === 'text' || input.type === 'password') {
-            value = parseInt(value);
-         }
-
         // Khusus untuk t2k jika ada (boolean)
         if (input.name === 't2k') {
             value = (value === 'true' || value === '1');
@@ -229,7 +225,7 @@ async function simpanSystem(e) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload) // Sekarang isinya {"global": {...}}
         });
-        
+        console.log(payload);
         const hasil = await res.json();
         alert(hasil.msg || "Data Berhasil Disimpan!");
     } catch (err) {
@@ -297,6 +293,8 @@ function simpanKeObjekLokal() {
 // --- KOREKSI 1: Konversi Warna HEX ke Integer ---
     // ESP32 lebih suka angka (16711680) daripada string ("0xff0000")
     const warnaHex = document.getElementById("c").value.replace("#", "0x");
+    const elemenDP = document.getElementById('dp');
+    const statusDP = (elemenDP && elemenDP.checked) ? 1 : 0;
     const warnaInt = parseInt(warnaHex, 16);
 
     // --- KOREKSI 2: Pastikan data bertipe Number/Integer ---
@@ -306,7 +304,7 @@ function simpanKeObjekLokal() {
         s:  parseInt(document.getElementById('s')?.value || 150),
         b:  parseInt(document.getElementById('b')?.value || 200),
         // ESP32 (ArduinoJson) lebih stabil menerima 1/0 daripada true/false
-        dp: document.getElementById('dp').checked ? 1 : 0, 
+        dp: statusDP, 
         c : warnaHex, 
         f:  polaSegmen.length,
         p:  polaSegmen

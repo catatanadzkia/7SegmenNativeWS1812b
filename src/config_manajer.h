@@ -12,7 +12,7 @@ extern bool muatJadwal();
 
 // --- SYSTEM ----
 bool loadSystemConfig();
-bool saveSystemConfig();
+bool saveSystemConfig(JsonVariant dataWeb = JsonVariant());
 // --- HAMA ---
 bool loadHama();
 bool saveHama();
