@@ -5,7 +5,8 @@ let DB = {
     ultra: {},  // Data Hama
     global: {}, // Data System
     sholat: [],
-    efek: []
+    efek: [],
+    status:{}
 };
 
 let konfig = { efek: [] }; 
@@ -17,13 +18,14 @@ let cacheDataSholat = [{}, {}, {}, {}, {}, {}];
 async function loadSemuaDataGlobal() {
     console.log("📥 Menarik data utuh dari ESP32...");
     try {
-        const [tgl, hama, sys, shlt, efk, jamDigital] = await Promise.all([
+        const [tgl, hama, sys, shlt, efk, jamDigital, cuaca] = await Promise.all([
             fetch('/load?set=tanggal').then(r => r.json()),
             fetch('/load?set=ultra').then(r => r.json()),
             fetch('/load?set=system').then(r => r.json()),
             fetch('/load?set=sholat').then(r => r.json()),
             fetch('/load?set=efek').then(r => r.json()),
-            fetch('/load?set=jam').then(r => r.json())
+            fetch('/load?set=jam').then(r => r.json()),
+            fetch('/load?set=cuaca').then(r => r.json())
         ]);
 
         // Simpan ke Cache sesuai struktur config_manajer.cpp
@@ -33,11 +35,13 @@ async function loadSemuaDataGlobal() {
         DB.sholat  = shlt;          // Array 6 slot
         DB.efek    = efk;           // Array 15 slot
         DB.jam     = jamDigital.jam;
+        DB.status   = cuaca.status;
 
         //console.log(DB);
         
 
         console.log("✅ Data Sinkron. Mendistribusikan ke UI...");
+        //console.log(DB.status);
         distribusikanKeForm();
 
 
@@ -53,7 +57,7 @@ const keHex = (val) => {
 
 function distribusikanKeForm() {
     // Gabungkan data objek tunggal
-    const flatData = { ...DB.tanggal, ...DB.ultra, ...DB.global, ...DB.jam };
+    const flatData = { ...DB.tanggal, ...DB.ultra, ...DB.global, ...DB.jam, ...DB.status };
 
     Object.keys(flatData).forEach(key => {
             // --- PROTEKSI UNTUK ARRAY WARNA JAM (w) ---
@@ -82,6 +86,7 @@ function distribusikanKeForm() {
             }
         }
     });
+    //console.log(flatData);
 
     // Distribusi lainnya...
     cacheDataSholat = DB.sholat;

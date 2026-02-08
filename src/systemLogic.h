@@ -29,42 +29,38 @@ extern void padDing(int d);
 CRGB warnaW;
 
 void eksekusiLogikaDP(int mode, bool state) {
-  // 1. Reset dulu biar gak ada sisa warna (Goblok-proof)
-   
-  targetPixel[1][42] = CRGB::Black;
-  targetPixel[1][43] = CRGB::Black;
+  int pinAwal = 42;
+  
+  // SATU LOOP UNTUK SEMUA (42-45)
+  for (int i = 0; i < 4; i++) {
+    int pinSekarang = pinAwal + i;
+    bool nyala = false; // Default mati
 
-  // 3. Mainkan Mode DP
-  switch (mode) {
-    case 1: // MODE GANTIAN (Kedip Atas-Bawah)
-      if (state) {
-        targetPixel[1][42] = warnaW; 
-      } else {
-        targetPixel[1][43] = warnaW;
-      }
-      break;
+    switch (mode) {
+      case 1: // GANTIAN (state true = 42,43 | state false = 44,45)
+        if (state) { if (i < 2) nyala = true; } 
+        else       { if (i >= 2) nyala = true; }
+        break;
 
-    case 2: // MODE KEDIP BARENG
-      if (state) {
-        targetPixel[1][42] = warnaW;
-        targetPixel[1][43] = warnaW;
-      }
-      break;
+      case 2: // KEDIP BARENG
+        if (state) nyala = true;
+        break;
 
-    case 3: // MODE HEARTBEAT (Detak)
-      if ((millis() % 1000) < 150 || ((millis() % 1000) > 300 && (millis() % 1000) < 450)) {
-        targetPixel[1][42] = warnaW;
-        targetPixel[1][43] = warnaW;
-      }
-      break;
+      case 3: // HEARTBEAT
+        if ((millis() % 1000) < 150 || ((millis() % 1000) > 300 && (millis() % 1000) < 450)) {
+          nyala = true;
+        }
+        break;
 
-    case 4: // MODE NYALA TERUS (Standby)
-      targetPixel[1][42] = warnaW;
-      targetPixel[1][43] = warnaW;
-      break;
+      case 4: // NYALA TERUS
+        nyala = true;
+        break;
+    }
+    CRGB warnaFnal = nyala ? warnaW : CRGB :: Black;
 
-    default: // Jika mode tidak dikenal, biarkan mati
-      break;
+    // Eksekusi ke targetPixel
+    targetPixel[1][pinSekarang] = warnaFnal;
+    leds[1][pinSekarang] = warnaFnal;
   }
 }
 void prosesAnimasiEfek(int idEfek) {
@@ -165,8 +161,9 @@ void notifTanggal(int setiap, int durasi, bool adaAgenda, int modeDP, int speedD
     bool stateKedip = (millis() / speedFinal) % 2 == 0;
 
     buatBufferTanggal(timeinfo, mainBuffer, konfig.tanggal.format);
-    eksekusiLogikaDP(modeDP, stateKedip); 
+    
     prosesAnimasiEfek(konfig.tanggal.idEfek); 
+    eksekusiLogikaDP(modeDP, stateKedip); 
     return; // Langsung pulang, jangan lirik jalur rutin
   }
 
@@ -183,8 +180,9 @@ void notifTanggal(int setiap, int durasi, bool adaAgenda, int modeDP, int speedD
 
     // 3. Eksekusi suntik titik
     buatBufferTanggal(timeinfo, mainBuffer, konfig.tanggal.format);
-    eksekusiLogikaDP(modeDP, stateKedip);
+    
     prosesAnimasiEfek(konfig.tanggal.idEfek); 
+    eksekusiLogikaDP(modeDP, stateKedip);
     return;
   }
 
@@ -288,13 +286,13 @@ void displayLoadingSinyal(uint32_t speed) {
   FastLED.show(); 
 }
 void terapkanVisualJam() {
-  
   // Tubuh jam
   bool statusTitik = (konfig.titikDuaKedip) ? (detikSekarang % 2 == 0) : false;
   buatBufferWaktu(timeinfo.tm_hour, timeinfo.tm_min, detikSekarang, mainBuffer, statusTitik);
   if (konfig.visjam.animasiAktif) {
     
     prosesAnimasiEfek(konfig.visjam.idAnimasi); 
+    setKecerahan(konfig.kecerahanGlobal);
     return;
   } 
   if (cuaca.status.aktif){
@@ -313,8 +311,6 @@ void terapkanVisualJam() {
     // Lukis ke targetPixel
   tampilkanKeSegmen(mainBuffer, warna);
     
-  
-  
 }
 
 #endif

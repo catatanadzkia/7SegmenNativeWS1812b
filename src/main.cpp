@@ -474,7 +474,7 @@ void WiFiEvent(arduino_event_id_t event) {
   }
 }
 void cekDanTampilkan() {
-  setKecerahan(konfig.kecerahanGlobal);
+  
 
   // 1. PRIORITAS UTAMA: MODE CEK JADWAL
   if (modeCekJadwal) {
@@ -533,4 +533,6 @@ void cekDanTampilkan() {
 
   // 5. DEFAULT: JAM NORMAL (Hanya tampil jika tidak ada prioritas di atas)
   terapkanVisualJam();
+  setKecerahan(konfig.kecerahanGlobal);
+  
 }

@@ -91,7 +91,7 @@ function showJam() {
 }
 async function statuscuaca() {
     console.log("Meminta update data ke BMKG...");
-    const status = document.getElementById('on_cuaca').checked;
+    const status = document.getElementById('c_a').checked;
     const v = status ? 1 : 0;
     
     // 1. Perintah ke webHandler untuk ambil data baru (jika ada act-nya)
@@ -112,7 +112,7 @@ function setEfekJam(isAktif) {
     
     // Opsional: Redupkan pilihan efek kalau lagi OFF biar user gak bingung
     document.getElementById("id_a").style.opacity = isAktif ? "1" : "0.5";
-    document.getElementById("on_cuaca").checked = false;
+    document.getElementById("c_a").checked = false;
     
 }
 function showJadwal() {

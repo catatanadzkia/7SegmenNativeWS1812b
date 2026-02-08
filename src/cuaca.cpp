@@ -90,14 +90,14 @@ void updateCuacaBMKG() {
 bool saveCuaca(){
   // Di ArduinoJson 7, cukup tulis tanpa parameter ukuran
   DynamicJsonDocument saveDoc(512);
-  JsonObject s = saveDoc["status"];
-  s["aktif"] = cuaca.status.aktif; 
+  JsonObject s = saveDoc.createNestedObject("status");
+  s["c_a"] = cuaca.status.aktif; 
   s["kode"]  = cuaca.status.kodeCuaca;
   s["desc"]   = cuaca.status.kondisi.c_str(); // Konsisten menggunakan "desc"
   s["jam"]   = cuaca.status.jam.c_str();
 
   //siimpanstructwarna
-  JsonObject w = saveDoc["warna"];
+  JsonObject w  = saveDoc.createNestedObject("warna");
   w["cerah"] = cuaca.warna.cerah;
   w["cerahBerawan"]=cuaca.warna.cerahBerawan;
   w["berawan"] = cuaca.warna.berawan;
@@ -143,7 +143,7 @@ bool muatCuaca() {
 
   // 1. Muat data Status
   JsonObject s = loadDoc["status"];
-  cuaca.status.aktif     = s["aktif"] | false;
+  cuaca.status.aktif     = s["c_a"] | false;
   cuaca.status.kodeCuaca = s["kode"]  | 0;
   cuaca.status.kondisi   = s["ket"]   | "Cerah";
   cuaca.status.jam       = s["jam"]   | "00:00";
